@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deepcut: find it by sound, build it by blueprint</title>
+<meta name="description" content="Sound-based track discovery for DJs, with harmonic mixing and set exports, plus DAW-ready template packs for producers. Prototype.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0c0f; --bg2:#101318; --panel:#141820; --line:#232a35; --line2:#2e3746;
+  --ink:#eef1f5; --mute:#8a94a6; --dim:#5d6676;
+  --hot:#ff5a1f; --hot2:#ff8a3d; --good:#3ddc97; --ok:#f5c84b; --bad:#ff5d6c; --cool:#6aa8ff;
+  --r:14px; --mono:'JetBrains Mono',ui-monospace,Menlo,monospace; --sans:'Space Grotesk',system-ui,sans-serif;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:inherit} button,input,select{font:inherit;color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+.mono{font-family:var(--mono)}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--hot)}
+h1,h2,h3{line-height:1.05;margin:0;letter-spacing:-.02em}
+h2{font-size:clamp(28px,4vw,44px)} h3{font-size:20px}
+p.lead{color:var(--mute);font-size:18px;max-width:640px}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line2);background:var(--panel);padding:10px 16px;border-radius:999px;cursor:pointer;font-weight:600;font-size:14px;text-decoration:none;white-space:nowrap;transition:.15s}
+.btn:hover{border-color:var(--mute)}
+.btn.hot{background:var(--hot);border-color:var(--hot);color:#140600}
+.btn.hot:hover{background:var(--hot2)}
+.btn.sm{padding:6px 11px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12px;padding:3px 8px;border-radius:6px;background:#1b212b;border:1px solid var(--line);color:var(--mute);white-space:nowrap}
+.chip.good{color:var(--good);border-color:#1e4a39;background:#0f231b}
+.chip.ok{color:var(--ok);border-color:#4a3d18;background:#221c0c}
+.chip.bad{color:var(--bad);border-color:#4a1e25;background:#240e12}
+.chip.hot{color:var(--hot2);border-color:#4d2412;background:#22100a}
+
+/* nav */
+header.nav{position:sticky;top:0;z-index:20;background:rgba(10,12,15,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+header.nav .wrap{display:flex;align-items:center;gap:22px;height:62px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:19px;letter-spacing:-.01em;text-decoration:none}
+.logo i{width:26px;height:26px;border-radius:7px;background:conic-gradient(from 200deg,var(--hot),#ffb36b,var(--hot));display:grid;place-items:center}
+.logo i:after{content:"";width:10px;height:10px;border-radius:50%;background:var(--bg)}
+nav.links{display:flex;gap:20px;font-size:14px;color:var(--mute);margin-left:auto}
+nav.links a{text-decoration:none} nav.links a:hover{color:var(--ink)}
+@media(max-width:760px){nav.links{display:none} header.nav .btn{margin-left:auto}}
+
+/* hero */
+.hero{padding:72px 0 40px;position:relative;overflow:hidden}
+.hero:before{content:"";position:absolute;inset:-40% -10% auto auto;width:720px;height:720px;background:radial-gradient(closest-side,rgba(255,90,31,.20),transparent 70%);pointer-events:none}
+.hero h1{font-size:clamp(40px,7vw,84px);font-weight:700;max-width:920px}
+.hero h1 em{font-style:normal;color:var(--hot)}
+.hero p.lead{margin:18px 0 28px}
+.searchbar{display:flex;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line2);border-radius:18px;padding:8px 8px 8px 16px;max-width:760px}
+.searchbar:focus-within{border-color:var(--hot)}
+.searchbar input{flex:1;min-width:0;background:none;border:0;outline:0;font-size:16px;padding:8px 0}
+.drop{display:block;margin-top:12px;color:var(--mute);font-size:14px;flex-wrap:wrap}
+.drop label{cursor:pointer;text-decoration:underline;text-underline-offset:3px;color:var(--ink)}
+.examples{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;align-items:center}
+.examples button{background:none;border:1px dashed var(--line2);border-radius:999px;padding:5px 12px;color:var(--mute);cursor:pointer;font-size:13px}
+.examples button:hover{color:var(--ink);border-color:var(--mute)}
+.note{font-family:var(--mono);font-size:12px;color:var(--dim);margin-top:16px}
+.pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:46px}
+.pillar{border:1px solid var(--line);border-radius:var(--r);padding:18px;background:linear-gradient(180deg,#12161d,#0d1014)}
+.pillar b{display:block;font-size:17px;margin:6px 0 4px}
+.pillar span{color:var(--mute);font-size:14px}
+@media(max-width:760px){.pillars{grid-template-columns:1fr}.hero{padding-top:44px}}
+
+section.block{padding:64px 0;border-top:1px solid var(--line)}
+.head{display:flex;justify-content:space-between;align-items:end;gap:20px;flex-wrap:wrap;margin-bottom:24px}
+.head p{color:var(--mute);margin:8px 0 0;max-width:560px}
+
+/* dig */
+.refcard{display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;border:1px solid #4d2412;background:linear-gradient(90deg,#1d0f09,#141820 60%);border-radius:var(--r);padding:16px}
+.refcard .t{font-size:20px;font-weight:600}
+.refcard .a{color:var(--mute);font-size:14px}
+.refnote{font-family:var(--mono);font-size:12px;color:var(--ok);margin-top:8px}
+.play{width:42px;height:42px;border-radius:50%;border:1px solid var(--line2);background:#1b212b;display:grid;place-items:center;cursor:pointer;flex:none}
+.play:hover{border-color:var(--hot)}
+.play svg{width:14px;height:14px;fill:var(--ink)}
+.play.on{background:var(--hot);border-color:var(--hot)} .play.on svg{fill:#140600}
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:10px;overflow:hidden}
+.seg button{background:none;border:0;padding:7px 11px;font-size:13px;color:var(--mute);cursor:pointer;border-right:1px solid var(--line2)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:#232a35;color:var(--ink)}
+.toggle{display:inline-flex;gap:8px;align-items:center;font-size:13px;color:var(--mute);cursor:pointer;border:1px solid var(--line2);border-radius:10px;padding:7px 11px}
+.toggle input{accent-color:var(--good)}
+.toggle:has(input:checked){color:var(--good);border-color:#1e4a39}
+.flabel{font-family:var(--mono);font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em}
+.results{display:flex;flex-direction:column;gap:8px}
+.row{display:grid;grid-template-columns:28px 42px 1fr 150px auto auto;gap:14px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg2)}
+.row:hover{border-color:var(--line2)}
+.row .rank{font-family:var(--mono);color:var(--dim);font-size:13px;text-align:right}
+.row .ti{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .ar{color:var(--mute);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px}
+.row .sim{font-family:var(--mono);font-weight:700;font-size:20px;text-align:right;min-width:62px}
+.row .sim small{display:block;font-size:10px;color:var(--dim);font-weight:400;letter-spacing:.08em}
+.row .acts{display:flex;gap:6px}
+.wave{width:150px;height:34px;display:block}
+@media(max-width:860px){
+  .row{grid-template-columns:42px 1fr auto;gap:10px}
+  .row .rank,.row .wave{display:none}
+  .row .acts{grid-column:1/-1;justify-content:flex-end}
+}
+.empty{padding:30px;text-align:center;color:var(--mute);border:1px dashed var(--line2);border-radius:12px}
+
+/* blueprint */
+.bp{border:1px solid var(--line);border-radius:18px;background:var(--bg2);overflow:hidden}
+.bp-top{display:grid;grid-template-columns:1.3fr 1fr;gap:0;border-bottom:1px solid var(--line)}
+.bp-top>div{padding:22px}
+.bp-top>div+div{border-left:1px solid var(--line)}
+@media(max-width:860px){.bp-top{grid-template-columns:1fr}.bp-top>div+div{border-left:0;border-top:1px solid var(--line)}}
+.bp-title{font-size:26px;font-weight:700}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px}
+.stat b{display:block;font-family:var(--mono);font-size:20px}
+.stat span{font-size:11px;color:var(--dim);font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em}
+@media(max-width:520px){.stats{grid-template-columns:repeat(2,1fr)}}
+.editor{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.editor label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--dim);font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em}
+.editor input,.editor select{background:var(--panel);border:1px solid var(--line2);border-radius:9px;padding:9px 10px;font-family:var(--mono);font-size:14px;text-transform:none;letter-spacing:0;color:var(--ink)}
+.editor .full{grid-column:1/-1}
+.ownaudio{margin-top:12px;border:1px dashed var(--line2);border-radius:10px;padding:12px;font-size:14px;color:var(--mute)}
+.ownaudio label{color:var(--ink);text-decoration:underline;cursor:pointer;text-underline-offset:3px}
+.ownaudio .st{font-family:var(--mono);font-size:12px;margin-top:6px;color:var(--ok)}
+.bp-body{padding:22px;display:flex;flex-direction:column;gap:26px}
+.timeline{display:flex;height:56px;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+.timeline div{position:relative;display:flex;flex-direction:column;justify-content:flex-end;padding:6px 7px;font-size:11px;font-family:var(--mono);border-right:1px solid rgba(0,0,0,.35);min-width:0;overflow:hidden;white-space:nowrap}
+.timeline div b{font-family:var(--sans);font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.tl-scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:6px}
+.energy-lane{height:40px;margin-top:8px;width:100%}
+.lbl{font-family:var(--mono);font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;display:flex;justify-content:space-between;gap:10px}
+.grid2{display:grid;grid-template-columns:1.2fr 1fr;gap:26px}
+@media(max-width:860px){.grid2{grid-template-columns:1fr}}
+.drumgrid{display:grid;grid-template-columns:62px repeat(16,1fr);gap:3px;font-family:var(--mono);font-size:11px;color:var(--mute);align-items:center}
+.drumgrid .c{aspect-ratio:1;border-radius:3px;background:#1a2029}
+.drumgrid .c.q{background:#202734}
+.drumgrid .c.x{background:var(--hot)}
+.drumgrid .c.g{background:#7a3a1d}
+.drumgrid .c.p{outline:2px solid var(--ink);outline-offset:-2px}
+.chords{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.chord{border:1px solid var(--line2);border-radius:10px;padding:10px 12px;min-width:0;background:var(--panel)}
+.chord b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chord b{display:block;font-size:18px}
+.chord span{font-family:var(--mono);font-size:12px;color:var(--dim)}
+.palette{width:100%;border-collapse:collapse;font-size:14px}
+.palette td{padding:9px 6px;border-top:1px solid var(--line);vertical-align:top}
+.palette td:first-child{font-family:var(--mono);font-size:12px;color:var(--hot2);width:70px}
+.palette td:last-child{color:var(--mute);font-size:13px}
+.dawpick{display:flex;gap:6px;flex-wrap:wrap}
+.dawpick button{border:1px solid var(--line2);background:var(--panel);border-radius:9px;padding:8px 12px;font-size:13px;cursor:pointer;color:var(--mute)}
+.dawpick button.on{border-color:var(--hot);color:var(--ink);background:#22100a}
+.dl{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+ol.steps{margin:14px 0 0;padding-left:20px;color:var(--mute);font-size:14px}
+ol.steps li{margin:4px 0}
+.legal{font-size:12px;color:var(--dim);font-family:var(--mono);margin-top:12px}
+
+/* set builder */
+.setwrap{display:grid;grid-template-columns:1.25fr 1fr;gap:20px}
+@media(max-width:860px){.setwrap{grid-template-columns:1fr}}
+.setlist{display:flex;flex-direction:column}
+.st-item{display:grid;grid-template-columns:24px 1fr auto;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg2)}
+.st-item .n{font-family:var(--mono);color:var(--dim);font-size:13px}
+.st-item .ti{font-weight:600;font-size:15px}
+.st-item .ar{color:var(--mute);font-size:13px}
+.st-item .ctl{display:flex;gap:4px}
+.st-item .ctl button{width:30px;height:30px;border-radius:8px;border:1px solid var(--line2);background:var(--panel);cursor:pointer;color:var(--mute)}
+.st-item .ctl button:hover{color:var(--ink)}
+.trans{display:flex;gap:10px;align-items:center;padding:6px 0 6px 18px;font-size:12px;color:var(--mute);font-family:var(--mono)}
+.trans .g{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-weight:700;color:#0a0c0f}
+.trans .g.A{background:var(--good)} .trans .g.B{background:var(--ok)} .trans .g.C{background:var(--bad)}
+.card{border:1px solid var(--line);border-radius:var(--r);background:var(--bg2);padding:18px}
+.curve{width:100%;height:180px;display:block}
+
+/* compare + stack + pricing */
+table.cmp{width:100%;border-collapse:collapse;font-size:15px}
+table.cmp th,table.cmp td{padding:12px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.cmp th{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);font-weight:400}
+table.cmp td:nth-child(2){color:var(--dim)}
+table.cmp td:nth-child(3){color:var(--good)}
+.cmpwrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--bg2)}
+.stack{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:860px){.stack{grid-template-columns:1fr}}
+.stack .card h3{font-size:17px;margin-bottom:6px}
+.stack .card p{color:var(--mute);font-size:14px;margin:0 0 10px}
+.stack .card ul{margin:0;padding-left:18px;font-size:13px;color:var(--mute)}
+.stack .card a{color:var(--cool);text-decoration:none}
+.tag{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border-radius:4px;margin-left:6px;vertical-align:middle}
+.tag.live{background:#0f231b;color:var(--good)} .tag.next{background:#221c0c;color:var(--ok)}
+.prices{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:860px){.prices{grid-template-columns:1fr}}
+.price{border:1px solid var(--line);border-radius:18px;padding:22px;background:var(--bg2);display:flex;flex-direction:column;gap:12px}
+.price.feat{border-color:var(--hot);background:linear-gradient(180deg,#1d0f09,var(--bg2) 45%)}
+.price .amt{font-size:40px;font-weight:700;letter-spacing:-.02em}
+.price .amt small{font-size:15px;color:var(--mute);font-weight:400}
+.price ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px;font-size:14px;color:var(--mute)}
+.price li:before{content:"→ ";color:var(--hot)}
+footer{border-top:1px solid var(--line);padding:34px 0 60px;color:var(--dim);font-size:13px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(120px);background:var(--ink);color:var(--bg);padding:11px 16px;border-radius:12px;font-weight:600;font-size:14px;transition:.25s;z-index:50;max-width:90vw}
+.toast.on{transform:translateX(-50%) translateY(0)}
+.setbadge{background:var(--hot);color:#140600;border-radius:999px;padding:0 7px;font-size:12px;font-family:var(--mono);margin-left:4px}
+</style>
+</head>
+<body>
+<header class="nav"><div class="wrap">
+  <a class="logo" href="#top"><i></i>deepcut</a>
+  <nav class="links"><a href="#dig">Dig</a><a href="#blueprint">Blueprints</a><a href="#set">Set builder</a><a href="#stack">How it works</a><a href="#pricing">Pricing</a></nav>
+  <a class="btn" href="#set">My set <span class="setbadge" id="setCount">0</span></a>
+</div></header>
+
+<main id="top">
+<section class="hero"><div class="wrap">
+  <div class="eyebrow">For DJs who dig · for producers who build</div>
+  <h1>Find it by <em>sound</em>.<br>Build it by <em>blueprint</em>.</h1>
+  <p class="lead">Drop a track you love. Deepcut ranks what actually sounds like it, tells you which ones mix in key, sequences them into a set for your decks, and turns any reference into a template you can open in your DAW.</p>
+  <form class="searchbar" id="searchForm" autocomplete="off">
+    <input id="q" placeholder="Paste a YouTube, SoundCloud or Bandcamp link, or type a track" aria-label="Reference track">
+    <button class="btn hot" type="submit">Dig ↵</button>
+  </form>
+  <div class="drop">or <label for="heroFile">drop your own audio</label> and get its BPM, key and a matching blueprint, analysed in your browser.<input type="file" id="heroFile" accept="audio/*" hidden></div>
+  <div class="examples" id="examples"><span class="flabel">Try</span></div>
+  <div class="note">Prototype · the demo catalog is fictional · nothing you drop is uploaded</div>
+  <div class="pillars">
+    <div class="pillar"><span class="eyebrow">01 · Dig</span><b>Sound-alike search with mixing context</b><span>Similarity score plus Camelot key, BPM delta and energy on every result. Filter to only what mixes.</span></div>
+    <div class="pillar"><span class="eyebrow">02 · Set</span><b>Sets that flow, exported to your decks</b><span>Transition grades, an energy curve and auto-ordering. Export to rekordbox XML, M3U or CSV.</span></div>
+    <div class="pillar"><span class="eyebrow">03 · Build</span><b>Blueprints for Ableton, Logic, FL and more</b><span>Tempo, key, arrangement markers and a starter groove as a MIDI template pack. All original material.</span></div>
+  </div>
+</div></section>
+
+<section class="block" id="dig"><div class="wrap">
+  <div class="head"><div><div class="eyebrow">Dig</div><h2>What sounds like it, and what mixes with it</h2><p>Every result shows key compatibility and tempo distance from your reference, so the list is usable in the booth, not just interesting.</p></div></div>
+  <div id="refcard"></div>
+  <div class="filters">
+    <label class="toggle"><input type="checkbox" id="fKey"> Mixes in key</label>
+    <span class="flabel">BPM</span><div class="seg" id="fBpm"><button data-v="0.03">±3%</button><button data-v="0.06" class="on">±6%</button><button data-v="0">Any</button></div>
+    <span class="flabel">Energy</span><div class="seg" id="fEnergy"><button data-v="any" class="on">Any</button><button data-v="match">±2</button><button data-v="up">Lift</button></div>
+    <span class="flabel">Sort</span><div class="seg" id="fSort"><button data-v="sim" class="on">Match</button><button data-v="bpm">BPM</button><button data-v="energy">Energy</button></div>
+  </div>
+  <div class="results" id="results"></div>
+</div></section>
+
+<section class="block" id="blueprint"><div class="wrap">
+  <div class="head"><div><div class="eyebrow">Blueprint · for producers</div><h2>Turn a reference into a session you can open</h2><p>We read the tempo, key, arrangement and groove of the reference, then generate original parts in that shape. Download one pack, open it in your DAW, start writing.</p></div></div>
+  <div class="bp" id="bp"></div>
+</div></section>
+
+<section class="block" id="set"><div class="wrap">
+  <div class="head"><div><div class="eyebrow">Set builder · for DJs</div><h2>From crate to set in one pass</h2><p>Add tracks from any dig. Deepcut grades every transition on key and tempo, plots your energy arc, and can reorder the set for you.</p></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" id="autoBtn">Auto-order</button><button class="btn sm" id="clearBtn">Clear</button></div></div>
+  <div class="setwrap">
+    <div class="setlist" id="setlist"></div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card"><div class="lbl"><span>Energy arc</span><span id="setLen"></span></div><svg class="curve" id="curve" viewBox="0 0 400 180" preserveAspectRatio="none"></svg></div>
+      <div class="card"><div class="lbl"><span>Export to your decks</span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn sm" data-exp="rb">rekordbox XML</button><button class="btn sm" data-exp="m3u">M3U8 (Serato / Traktor / Engine)</button><button class="btn sm" data-exp="csv">CSV with transition notes</button>
+        </div>
+        <p class="legal">Exports carry title, artist, BPM, key and energy. In the full product they link to your local files or to Bandcamp / Beatport to buy.</p>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<section class="block"><div class="wrap">
+  <div class="head"><div><div class="eyebrow">Why switch</div><h2>Built past the "similar tracks" list</h2></div></div>
+  <div class="cmpwrap"><table class="cmp">
+    <thead><tr><th>What you need</th><th>Typical sound-alike finder</th><th>Deepcut</th></tr></thead>
+    <tbody>
+      <tr><td>Find tracks by sound</td><td>Yes</td><td>Yes, with a per-axis breakdown (rhythm, bass, grit, atmosphere, brightness, swing)</td></tr>
+      <tr><td>Know if it mixes</td><td>Tags at best</td><td>Camelot key + compatibility on every result, BPM delta with half/double-time awareness</td></tr>
+      <tr><td>Build a set</td><td>Save a list</td><td>Transition grades, energy arc, auto-ordering</td></tr>
+      <tr><td>Get it onto your decks</td><td>Not supported</td><td>rekordbox XML, M3U8, CSV</td></tr>
+      <tr><td>Analyse my own track</td><td>Upload to their servers</td><td>BPM + key in your browser; the file never leaves your device</td></tr>
+      <tr><td>Producer workflow</td><td>Not supported</td><td>Blueprint packs: tempo, key, markers, drums, bass, chords and a hook sketch as MIDI, with setup steps for 6 DAWs</td></tr>
+    </tbody>
+  </table></div>
+</div></section>
+
+<section class="block" id="stack"><div class="wrap">
+  <div class="head"><div><div class="eyebrow">How it works</div><h2>Open-source engines underneath</h2><p>The prototype runs fully in your browser. The production stack swaps in proven open-source audio tools.</p></div></div>
+  <div class="stack">
+    <div class="card"><h3>Listen <span class="tag live">BPM + key live</span></h3><p>Tempo by onset autocorrelation and key by chroma profile run in the browser today. Production adds beat grids, downbeats and section detection.</p>
+      <ul><li><a href="https://github.com/MTG/essentia">Essentia</a> for key, BPM and embeddings</li><li><a href="https://github.com/CPJKU/madmom">madmom</a> for beats and downbeats</li><li><a href="https://github.com/librosa/librosa">librosa</a> for structure segmentation</li></ul></div>
+    <div class="card"><h3>Match <span class="tag next">next</span></h3><p>Audio embeddings go into a vector index, so "sounds like" is a nearest-neighbour query re-ranked by key, tempo and energy.</p>
+      <ul><li><a href="https://github.com/qdrant/qdrant">Qdrant</a> as the vector database</li><li><a href="https://github.com/Tonejs/Tone.js">Tone.js</a> for previews and the blueprint player</li></ul></div>
+    <div class="card"><h3>Build <span class="tag live">MIDI packs live</span></h3><p>Blueprints export Standard MIDI today. Next come native project files and your-own-audio tools.</p>
+      <ul><li><a href="https://github.com/spotify/basic-pitch">Basic Pitch</a>: your audio to MIDI</li><li><a href="https://github.com/facebookresearch/demucs">Demucs</a>: stems from your own tracks</li><li><a href="https://github.com/surge-synthesizer/surge">Surge XT</a> and <a href="https://github.com/mtytel/vital">Vital</a> presets in every pack</li></ul></div>
+  </div>
+</div></section>
+
+<section class="block" id="pricing"><div class="wrap">
+  <div class="head"><div><div class="eyebrow">Pricing (proposed)</div><h2>Free to dig. Pay when it's your workflow.</h2></div></div>
+  <div class="prices">
+    <div class="price"><div class="eyebrow">Free</div><div class="amt">$0</div><ul><li>10 digs a day</li><li>Key + BPM on every result</li><li>3 blueprint packs a month</li><li>Set builder with M3U export</li></ul><a class="btn" href="#top">Start digging</a></div>
+    <div class="price feat"><div class="eyebrow">Selector</div><div class="amt">$6<small>/mo</small></div><ul><li>Unlimited digs and filters</li><li>rekordbox XML + CSV exports</li><li>Set analysis and auto-ordering</li><li>Library sync and Bandcamp wishlist</li></ul><a class="btn hot" href="#dig">Try Selector</a></div>
+    <div class="price"><div class="eyebrow">Studio</div><div class="amt">$10<small>/mo</small></div><ul><li>Everything in Selector</li><li>Unlimited blueprint packs</li><li>Native Ableton, Logic, FL and DAWproject files</li><li>Stems and audio-to-MIDI from your own tracks</li></ul><a class="btn" href="#blueprint">Try a blueprint</a></div>
+  </div>
+</div></section>
+</main>
+
+<footer><div class="wrap">deepcut · prototype · all tracks, artists and labels shown are fictional demo data · blueprints contain only generated material</div></footer>
+<div class="toast" id="toast"></div>
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
